@@ -29,9 +29,9 @@ public class Benchmark {
     }
 
     public static Connection connect(String targetIp) throws Exception {
-        String url = "jdbc:mysql://"+targetIp+":3306";
+        String url = "jdbc:mysql://"+targetIp+":3306/benchdb";
         String user = "dbi";
-        String password = "dbi";
+        String password = "dbi_pass";
         Connection conn = null;
 
         try {
@@ -45,11 +45,7 @@ public class Benchmark {
         return conn;
     }
 
-    public static void initDb(Connection conn) throws SQLException {
-        Scanner scan = new Scanner(System.in);
-        System.out.println("Enter n:");
-        int n = scan.nextInt();
-        scan.close();
+    public static void initDb(Connection conn, int n) throws SQLException {
 
         try {
             Statement stmt = conn.createStatement();
@@ -119,10 +115,6 @@ public class Benchmark {
             stmt.executeUpdate(sqlHistory);
             System.out.println("\nCreated Table history\n");
 
-
-            conn.close();  //close connection
-
-            System.out.println("\nDisconnected!\n");
 
             String SQL_Insert_branches = "insert into `benchdb`.branches(branchid, branchname, balance, address) values (?,?,?,?)";
             PreparedStatement preparedStatement = conn.prepareStatement(SQL_Insert_branches);

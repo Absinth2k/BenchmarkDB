@@ -91,7 +91,7 @@ public class LoadDriver {
      */
     public static void main(String[] args) throws Exception {
         String scannedIP=scanIP();
-
+        Benchmark.initDb(Benchmark.connect("127.0.0.1"), 100);
         LoadDriverThread[] threads = createThreads(scannedIP);
         long start = System.currentTimeMillis();
         long decay_phase = start + 54000;
