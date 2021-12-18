@@ -1,6 +1,5 @@
 import java.sql.*;
 import java.util.Random;
-import java.util.Scanner;
 
 public class Benchmark {
 
@@ -22,13 +21,10 @@ public class Benchmark {
 
 
     protected static Connection getConnection(String url, String user, String pwd) throws SQLException {
-        String Url = url;
-        String User = user;
-        String Pwd = pwd;
         return DriverManager.getConnection(url, user, pwd);
     }
 
-    public static Connection connect(String targetIp) throws Exception {
+    public static Connection connect(String targetIp) {
         String url = "jdbc:mysql://"+targetIp+":3306/benchdb";
         String user = "dbi";
         String password = "dbi_pass";
@@ -46,9 +42,15 @@ public class Benchmark {
     }
 
     public static void initDb(Connection conn, int n) throws SQLException {
-
+        conn.setAutoCommit(false);
+        Statement stmt = conn.createStatement();
+        String sqlDropHistoryIfExists = "TRUNCATE table history;";
+        stmt.executeUpdate(sqlDropHistoryIfExists);
+        conn.commit();
+        System.out.println("Dropped History values");
         try {
-            Statement stmt = conn.createStatement();
+            /*conn.setAutoCommit(false);
+            Statement stmt = conn.createStatement();*/
             String sqlDropSchemaIfExists = "DROP schema if exists benchdb;";
             stmt.executeUpdate(sqlDropSchemaIfExists);
             System.out.println("\nDrop schema if exists\n");
@@ -125,6 +127,7 @@ public class Benchmark {
                 preparedStatement.setString(4, "ABCDEFGHIJKLMNOPQRSTUVXYZABCDEFGHIJKLMNOPQRSTUVXYZABCDEFGHIJKLMNOPQR");
                 preparedStatement.executeUpdate();
             }
+
             String SQL_Insert_accounts = "insert into `benchdb`.accounts(accid, balance, branchid, name, address) values (?,?,?,?,?)";
             preparedStatement = conn.prepareStatement(SQL_Insert_accounts);
             for (int i = 1; i <= n * 100000; ++i) {
@@ -136,9 +139,16 @@ public class Benchmark {
                 preparedStatement.setString(4, "ABCDEFGHIJKLMNOPQRST");
                 preparedStatement.setString(5, "ABCDEFGHIJKLMNOPQRSTUVXYZABCDEFGHIJKLMNOPQRSTUVXYZABCDEFGHIJKLMNOPQR");
                 preparedStatement.addBatch();
-            }
-            preparedStatement.executeBatch();
+                if(i % 100000 == 0) {
 
+                    preparedStatement.executeBatch();
+                }
+                if( i% 1000000== 0){
+                    System.out.println("1000000");
+                }
+
+            }
+            System.out.println("ready");
 
             String SQL_Insert_tellers = "insert into `benchdb`.tellers(tellerid, balance, branchid, tellername, address) values (?,?,?,?,?) ";
             preparedStatement = conn.prepareStatement(SQL_Insert_tellers);
@@ -167,8 +177,9 @@ public class Benchmark {
             ResultSet rs = stmt.executeQuery("SELECT accounts.balance FROM accounts WHERE accounts.accid = " + accid + ";");
 
             rs.next();
-            int balance = rs.getInt(1);
-            return balance;
+            //int balance = rs.getInt(1);
+            //return balance;
+            return rs.getInt(1);
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -199,14 +210,21 @@ public class Benchmark {
             ResultSet rs = stmt.executeQuery("SELECT COUNT(history.accid) FROM history where history.delta = " + delta);
 
             rs.next();
-            int numberOfPayments = rs.getInt(1);
-            return numberOfPayments;
+           // int numberOfPayments = rs.getInt(1);
+           // return numberOfPayments;
+            return rs.getInt(1);
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return 0;
     }
+
+
+
+
+
+
     public static int einzahlungs_TXv2(int accid, int tellerid, int branchid, int delta, Connection conn) {
         try {
             Statement stmt = conn.createStatement();
