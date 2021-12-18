@@ -28,17 +28,17 @@
 
                 if(random <= 50) {
                     //benchmark.einzahlungs_TX(accid, tellerid, branchid, delta, db.conn);
-                    Benchmark.einzahlungs_TX(accid, tellerid, branchid, delta, db.conn);
+                    Benchmark.einzahlungs_TXv2(accid, tellerid, branchid, delta, db.conn);
                     counter++;
                 }
                 else if(random > 50 && random <= 85) {
                     //benchmark.kontostands_TX(accid, db.conn);
-                    Benchmark.kontostands_TX(accid, db.conn);
+                    Benchmark.kontostands_TXv2(accid, db.conn);
                     counter++;
                 }
                 else {
                     //benchmark.analyse_TX(delta, db.conn);
-                    Benchmark.analyse_TX(delta, db.conn);
+                    Benchmark.analyse_TXv2(delta, db.conn);
                     counter++;
                 }
                 try {

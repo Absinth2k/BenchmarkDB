@@ -46,11 +46,18 @@ public class Benchmark {
         Statement stmt = conn.createStatement();
         String sqlDropHistoryIfExists = "TRUNCATE table history;";
         stmt.executeUpdate(sqlDropHistoryIfExists);
+        String sqlDropFunctionAnalyseTX = "Drop function if exists analyseTX ;";
+        stmt.executeUpdate(sqlDropFunctionAnalyseTX);
+        String sqlDropFunctionEinzahlungsTX = "Drop function if exists einzahlungsTX ;";
+        stmt.executeUpdate(sqlDropFunctionEinzahlungsTX);
+        String sqlDropFunctionKontostandsTX = "Drop function if exists kontostandsTX ;";
+        stmt.executeUpdate(sqlDropFunctionKontostandsTX);
+        createFunctions(conn);
         conn.commit();
         System.out.println("Dropped History values");
-        try {
-            /*conn.setAutoCommit(false);
-            Statement stmt = conn.createStatement();*/
+        /*try {
+            conn.setAutoCommit(false);
+            Statement stmt = conn.createStatement();
             String sqlDropSchemaIfExists = "DROP schema if exists benchdb;";
             stmt.executeUpdate(sqlDropSchemaIfExists);
             System.out.println("\nDrop schema if exists\n");
@@ -168,7 +175,7 @@ public class Benchmark {
     } catch (SQLException e) {
         System.err.println(e.toString());
         System.exit(1);
-    }
+    }*/
     }
 
     public static int kontostands_TX(int accid, Connection conn){
@@ -221,6 +228,51 @@ public class Benchmark {
     }
 
 
+
+    public static void createFunctions(Connection conn) {
+        try {
+            PreparedStatement pstmt = null;
+            pstmt = conn.prepareStatement("CREATE FUNCTION benchdb.kontostandsTX(id INT)\r\n"
+                    + "RETURNS int\r\n"
+                    + "DETERMINISTIC\r\n"
+                    + "BEGIN\r\n"
+                    + "  DECLARE i INT DEFAULT 1;\r\n"
+                    + "  SET i = 0;\r\n"
+                    + "  SELECT accounts.balance INTO i FROM accounts WHERE accounts.accid = id;\r\n"
+                    + "  RETURN i;\r\n"
+                    + "END\r\n");
+            pstmt.executeUpdate();
+
+            pstmt = conn.prepareStatement("CREATE FUNCTION benchdb.einzahlungsTX(accid INT, tellerid INT, branchid INT, delta INT)\r\n"
+                    + "RETURNS int\r\n"
+                    + "DETERMINISTIC\r\n"
+                    + "BEGIN\r\n"
+                    + "  DECLARE i INT DEFAULT 1;\r\n"
+                    + "  SET i = 0;\r\n"
+                    + "  UPDATE branches SET branches.balance = (branches.balance + delta) WHERE branches.branchid = branchid;\r\n"
+                    + "  UPDATE tellers SET tellers.balance = (tellers.balance + delta) WHERE tellers.tellerid = tellerid;\r\n"
+                    + "  UPDATE accounts SET accounts.balance = (accounts.balance + delta) WHERE accounts.accid = accid;\r\n"
+                    + "  SELECT accounts.balance INTO i FROM accounts WHERE accounts.accid = accid;\r\n"
+                    + "  INSERT INTO history VALUES(accid, tellerid, delta, branchid, i, 'abcdefghijklmnopqrstuvwxyzabcd');\r\n"
+                    + "  RETURN i;\r\n"
+                    + "END\r\n");
+            pstmt.executeUpdate();
+
+            pstmt = conn.prepareStatement("CREATE FUNCTION benchdb.analyseTX(delta INT)\r\n"
+                    + "RETURNS int\r\n"
+                    + "DETERMINISTIC\r\n"
+                    + "BEGIN\r\n"
+                    + "  DECLARE i INT DEFAULT 1;\r\n"
+                    + "  SET i = 0;\r\n"
+                    + "  SELECT COUNT(history.accid) INTO i FROM history where history.delta = delta;\r\n"
+                    + "  RETURN i;\r\n"
+                    + "END\r\n");
+            pstmt.executeUpdate();
+        }
+        catch(SQLException e) {
+            System.err.println(e.getMessage());
+        }
+    }
 
 
 

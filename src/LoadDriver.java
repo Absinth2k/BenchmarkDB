@@ -66,6 +66,7 @@ public class LoadDriver {
                     + t[4].getCounter() + "  Total TX: " + total_count;
             System.out.println(output);
             try {
+
                 logger.setUseParentHandlers(false);
                 fileHandler = new FileHandler("C:/benchmarkDatabase/CounterLog.log", true);
                 logger.addHandler(fileHandler);
@@ -94,15 +95,16 @@ public class LoadDriver {
         Benchmark.initDb(Benchmark.connect("127.0.0.1"), 100);
         LoadDriverThread[] threads = createThreads(scannedIP);
         long start = System.currentTimeMillis();
-        long decay_phase = start + 54000;
-        long time_phase = start + 24000;
-        long end_phase = start + 60000;
+        long decay_phase = start + 24000;
+        long time_phase = decay_phase + 30000;
+        long end_phase = time_phase + 6000;
         System.out.println("Starting warmup phase...");
-        while(System.currentTimeMillis() < time_phase) {
+        while(System.currentTimeMillis() < decay_phase) {
             //Do not count, but transactions from LoadDriverThread will continue.
         }
         long timer1 = System.currentTimeMillis();
-        long total_count = measure(threads, decay_phase);
+        System.out.println("Starting measure phase...");
+        long total_count = measure(threads, time_phase);
         long timer2 = System.currentTimeMillis();
         long total_time = (long)(timer2-timer1) / 1000;
         long total_TX = total_count / total_time;
