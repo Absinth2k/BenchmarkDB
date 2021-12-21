@@ -7,11 +7,10 @@ public class Benchmark {
 
     public Benchmark(String ip) {
         try {
-            if(ip.isEmpty()) {
+            if (ip.isEmpty()) {
                 conn = connect("127.0.0.1");
-            }
-            else {
-                conn=connect(ip);
+            } else {
+                conn = connect(ip);
             }
 
         } catch (Exception e) {
@@ -25,7 +24,7 @@ public class Benchmark {
     }
 
     public static Connection connect(String targetIp) {
-        String url = "jdbc:mysql://"+targetIp+":3306/benchdb";
+        String url = "jdbc:mysql://" + targetIp + ":3306/benchdb?O_DIRECT ";
         String user = "dbi";
         String password = "dbi_pass";
         Connection conn = null;
@@ -33,9 +32,8 @@ public class Benchmark {
         try {
             conn = getConnection(url, user, password);
             System.out.println("Connection established");
-            System.out.println("");
-        }
-        catch(SQLException ex){
+            System.out.println();
+        } catch (SQLException ex) {
             System.err.println(ex.getMessage());
         }
         return conn;
@@ -54,10 +52,10 @@ public class Benchmark {
         stmt.executeUpdate(sqlDropFunctionKontostandsTX);
         createFunctions(conn);
         conn.commit();
-        System.out.println("Dropped History values");
-        /*try {
+        System.out.println("Dropped old functions and history values");
+        try {
             conn.setAutoCommit(false);
-            Statement stmt = conn.createStatement();
+            stmt = conn.createStatement();
             String sqlDropSchemaIfExists = "DROP schema if exists benchdb;";
             stmt.executeUpdate(sqlDropSchemaIfExists);
             System.out.println("\nDrop schema if exists\n");
@@ -175,17 +173,16 @@ public class Benchmark {
     } catch (SQLException e) {
         System.err.println(e.toString());
         System.exit(1);
-    }*/
+    }
     }
 
     public static int kontostands_TX(int accid, Connection conn){
         try {
+
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT accounts.balance FROM accounts WHERE accounts.accid = " + accid + ";");
 
             rs.next();
-            //int balance = rs.getInt(1);
-            //return balance;
             return rs.getInt(1);
 
         } catch (SQLException e) {
@@ -196,18 +193,19 @@ public class Benchmark {
 
     public static int einzahlungs_TX(int accid, int tellerid, int branchid, int delta, Connection conn) {
         try {
+
             Statement stmt = conn.createStatement();
 
             stmt.executeUpdate("UPDATE branches SET branches.balance = (branches.balance + " + delta + ") WHERE branches.branchid = " + branchid);
             stmt.executeUpdate("UPDATE tellers SET tellers.balance = (tellers.balance + " + delta + ") WHERE tellers.tellerid = " + tellerid);
             stmt.executeUpdate("UPDATE accounts SET accounts.balance = (accounts.balance + " + delta + ") WHERE accounts.accid = " + accid);
-            stmt.executeUpdate("INSERT INTO history VALUES(" + accid + ", " + tellerid + ", " + delta + ", " + branchid + ", " + kontostands_TX(accid, conn) + ", 'abcdefghijklmnopqrstuvwxyzabcd');");
+            stmt.executeUpdate("INSERT INTO history VALUES(" + accid + ", " + tellerid + ", " + delta + ", " + branchid + "" +
+                                   ", " + kontostands_TX(accid, conn) + ", 'abcdefghijklmnopqrstuvwxyzabcd');");
 
             return kontostands_TX(accid, conn);
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
         return 0;
     }
 
@@ -215,10 +213,7 @@ public class Benchmark {
         try {
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT COUNT(history.accid) FROM history where history.delta = " + delta);
-
             rs.next();
-           // int numberOfPayments = rs.getInt(1);
-           // return numberOfPayments;
             return rs.getInt(1);
 
         } catch (SQLException e) {
@@ -231,8 +226,7 @@ public class Benchmark {
 
     public static void createFunctions(Connection conn) {
         try {
-            PreparedStatement pstmt = null;
-            pstmt = conn.prepareStatement("CREATE FUNCTION benchdb.kontostandsTX(id INT)\r\n"
+            PreparedStatement pstmt = conn.prepareStatement("CREATE FUNCTION benchdb.kontostandsTX(id INT)\r\n"
                     + "RETURNS int\r\n"
                     + "DETERMINISTIC\r\n"
                     + "BEGIN\r\n"
@@ -268,6 +262,7 @@ public class Benchmark {
                     + "  RETURN i;\r\n"
                     + "END\r\n");
             pstmt.executeUpdate();
+            pstmt.close();
         }
         catch(SQLException e) {
             System.err.println(e.getMessage());
@@ -317,10 +312,10 @@ public class Benchmark {
             stmt.executeQuery("SELECT analyseTX('" +  delta + "')");
 
             return 0;
-        } catch (SQLException e) {
+        }
+        catch (SQLException e) {
             e.printStackTrace();
         }
-
         return 0;
     }
 
